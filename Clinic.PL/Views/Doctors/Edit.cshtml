@@ -1,0 +1,55 @@
+@model Clinic.PL.ViewModels.DoctorCreateEditVM
+@{
+    ViewData["Title"] = $"Edit Doctor - {Model.Name}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h4 fw-bold mb-0 text-dark">Edit Doctor Profile</h2>
+    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Doctors
+    </a>
+</div>
+
+<div class="card card-clinic shadow-sm">
+    <div class="card-header bg-white d-flex align-items-center gap-2">
+        <i class="bi bi-pencil-square text-primary fs-5"></i>
+        <h3 class="h6 fw-bold mb-0">Update Physician Info</h3>
+    </div>
+    <div class="card-body p-4">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label asp-for="Name" class="form-label fw-semibold small">Doctor Name</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input asp-for="Name" class="form-control" placeholder="e.g. Dr. Ahmed Mahmoud" autocomplete="name" />
+                    </div>
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Specialty" class="form-label fw-semibold small">Specialty</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-award"></i></span>
+                        <input asp-for="Specialty" class="form-control" placeholder="e.g. Pediatrics, Cardiology, General" />
+                    </div>
+                    <span asp-validation-for="Specialty" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                <a asp-action="Index" class="btn btn-light px-3">Cancel</a>
+                <button type="submit" class="btn btn-primary fw-semibold px-4 shadow-sm">
+                    <i class="bi bi-check-lg me-1"></i> Update Doctor
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

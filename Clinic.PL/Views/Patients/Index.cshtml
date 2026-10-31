@@ -1,0 +1,137 @@
+@using System.Globalization
+@model Clinic.PL.ViewModels.PatientListVM
+@{
+    ViewData["Title"] = "Patients Directory";
+    var inv = CultureInfo.InvariantCulture;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h2 class="h3 fw-bold mb-1 text-dark">Patients Directory</h2>
+        <p class="text-muted small mb-0">Browse and manage registered patients, contact details, and clinical visit history</p>
+    </div>
+    <div>
+        <a asp-action="Create" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm fw-semibold">
+            <i class="bi bi-person-plus-fill"></i>
+            <span>Register New Patient</span>
+        </a>
+    </div>
+</div>
+
+<div class="card card-clinic shadow-sm">
+    <div class="card-body">
+        <!-- Search bar -->
+        <form method="get" class="row g-2 mb-3 align-items-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" value="@Model.Search" class="form-control"
+                           placeholder="Search by full name or Egyptian phone number..." />
+                    @if (!string.IsNullOrWhiteSpace(Model.Search))
+                    {
+                        <a asp-action="Index" class="btn btn-outline-secondary" title="Clear Search">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    }
+                    <button type="submit" class="btn btn-primary fw-semibold px-3">Search</button>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-7 text-md-end text-muted small">
+                Showing <strong>@Model.Patients.Count</strong> registered patient(s)
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-clinic align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Patient Name</th>
+                        <th>Date of Birth</th>
+                        <th>Phone Number</th>
+                        <th>Visit Count</th>
+                        <th class="text-end" style="min-width: 140px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Patients.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <div class="avatar-circle mx-auto mb-3" style="width: 56px; height: 56px; background-color: #f1f5f9; color: #94a3b8;">
+                                    <i class="bi bi-person-x fs-3"></i>
+                                </div>
+                                <div class="fw-semibold text-dark">No patients found</div>
+                                <div class="small">Try a different search term or register a new patient.</div>
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var p in Model.Patients)
+                    {
+                        var initials = string.Join("", p.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                            .Take(2)
+                            .Select(x => x.Length > 0 ? x[0].ToString().ToUpper() : ""));
+                        if (string.IsNullOrEmpty(initials)) initials = "P";
+
+                        var age = DateTime.Today.Year - p.DateOfBirth.Year;
+                        if (p.DateOfBirth > DateOnly.FromDateTime(DateTime.Today.AddYears(-age))) age--;
+
+                        <tr>
+                            <td class="text-muted small">@p.Id</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar-circle">@initials</div>
+                                    <div>
+                                        <a asp-action="Details" asp-route-id="@p.Id" class="text-decoration-none fw-semibold text-dark d-block">
+                                            @p.FullName
+                                        </a>
+                                        <span class="text-muted small">PID: #@p.Id</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-dark">@p.DateOfBirth.ToString("dd MMM yyyy", inv)</div>
+                                <div class="text-muted small">@age years old</div>
+                            </td>
+                            <td>
+                                <a href="tel:@p.PhoneNumber" class="font-monospace text-decoration-none text-dark fw-medium small">
+                                    <i class="bi bi-telephone text-primary me-1"></i> @p.PhoneNumber
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-primary border">
+                                    <i class="bi bi-calendar-check me-1"></i> @p.AppointmentCount visit(s)
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <a asp-action="Details" asp-route-id="@p.Id" class="btn-action-icon btn-action-info"
+                                       data-bs-toggle="tooltip" data-bs-title="View File & History">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@p.Id" class="btn-action-icon btn-action-info"
+                                       data-bs-toggle="tooltip" data-bs-title="Edit Details">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+
+                                    <form asp-action="Delete" method="post" class="d-inline"
+                                          data-confirm="true"
+                                          data-confirm-title="Delete Patient"
+                                          data-confirm-message="Are you sure you want to delete patient @p.FullName? Note: deletion will be blocked if the patient has any appointments."
+                                          data-confirm-btn-class="btn-danger"
+                                          data-confirm-btn-text="Delete Patient">
+                                        <input type="hidden" name="id" value="@p.Id" />
+                                        <button type="submit" class="btn-action-icon btn-action-danger"
+                                                data-bs-toggle="tooltip" data-bs-title="Delete Record">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

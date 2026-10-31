@@ -1,0 +1,68 @@
+@model Clinic.PL.ViewModels.PatientCreateEditVM
+@{
+    ViewData["Title"] = "Register New Patient";
+    var todayStr = DateTime.Today.ToString("yyyy-MM-dd");
+    var minDob = DateTime.Today.AddYears(-120).ToString("yyyy-MM-dd");
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h4 fw-bold mb-0 text-dark">Register New Patient</h2>
+    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Patients
+    </a>
+</div>
+
+<div class="card card-clinic shadow-sm">
+    <div class="card-header bg-white d-flex align-items-center gap-2">
+        <i class="bi bi-person-plus text-primary fs-5"></i>
+        <h3 class="h6 fw-bold mb-0">Patient Bio Data</h3>
+    </div>
+    <div class="card-body p-4">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-5">
+                    <label asp-for="FullName" class="form-label fw-semibold small">Full Name</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input asp-for="FullName" class="form-control" placeholder="e.g. Ahmed Mahmoud" autocomplete="name" />
+                    </div>
+                    <span asp-validation-for="FullName" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="DateOfBirth" class="form-label fw-semibold small">Date of Birth</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+                        <input asp-for="DateOfBirth" type="date" min="@minDob" max="@todayStr" class="form-control"
+                               value="@Model.DateOfBirth?.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="PhoneNumber" class="form-label fw-semibold small">Phone Number</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                        <input asp-for="PhoneNumber" type="tel" inputmode="tel" maxlength="16" autocomplete="tel"
+                               class="form-control" placeholder="01012345678" />
+                    </div>
+                    <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                    <div class="form-text small">Egyptian mobile (010, 011, 012, 015).</div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                <a asp-action="Index" class="btn btn-light px-3">Cancel</a>
+                <button type="submit" class="btn btn-primary fw-semibold px-4 shadow-sm">
+                    <i class="bi bi-check-lg me-1"></i> Save Patient
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

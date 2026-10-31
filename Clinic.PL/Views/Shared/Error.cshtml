@@ -1,0 +1,32 @@
+@model Clinic.PL.ViewModels.ErrorViewModel
+@{
+    ViewData["Title"] = "System Error";
+}
+
+<div class="row justify-content-center my-5">
+    <div class="col-md-7 col-lg-6">
+        <div class="card card-clinic text-center p-4">
+            <div class="mb-3">
+                <i class="bi bi-exclamation-octagon-fill text-danger display-3"></i>
+            </div>
+            <h3 class="fw-bold text-danger mb-2">Something Went Wrong</h3>
+            <p class="text-muted mb-4">
+                @(Model.Message ?? "An unexpected error occurred while processing your request. Please try again or return to the appointments dashboard.")
+            </p>
+
+            @if (Model.ShowRequestId)
+            {
+                <div class="alert alert-light border small text-muted text-break mb-4">
+                    <strong>Request ID:</strong> <code>@Model.RequestId</code>
+                </div>
+            }
+
+            <div>
+                <a asp-controller="Appointments" asp-action="Index" class="btn btn-primary px-4">
+                    <i class="bi bi-house-door me-1"></i> Return to Appointments
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,331 @@
+@using System.Globalization
+@model Clinic.PL.ViewModels.CreateAppointmentVM
+@{
+    ViewData["Title"] = "Book Appointment";
+    var todayStr = DateTime.Today.ToString("yyyy-MM-dd");
+    var minDob = DateTime.Today.AddYears(-120).ToString("yyyy-MM-dd");
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h4 fw-bold mb-0 text-dark">Book Appointment</h2>
+    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Appointments
+    </a>
+</div>
+
+<div class="card card-clinic shadow-sm">
+    <div class="card-body p-4">
+        <form asp-action="Create" method="post" id="bookingForm">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+
+            <input asp-for="PatientId" type="hidden" />
+
+            <div class="row g-4">
+                <!-- Left: Patient & Doctor -->
+                <div class="col-lg-6">
+                    <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                        <i class="bi bi-person text-primary"></i>
+                        <span class="fw-bold small text-uppercase text-secondary">Patient Information</span>
+                    </div>
+
+                    <!-- Existing Patient Search -->
+                    <div class="mb-3 position-relative">
+                        <label class="form-label small fw-semibold">Search Existing Patient</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input id="patientSearch" type="search" class="form-control" autocomplete="off"
+                                   placeholder="Search by name or phone..." />
+                            <button id="clearPatient" type="button" class="btn btn-outline-secondary d-none">
+                                <i class="bi bi-x-circle me-1"></i> Clear
+                            </button>
+                        </div>
+                        <div id="patientResults" class="list-group position-absolute w-100 shadow-sm mt-1" style="z-index: 1050; max-height: 200px; overflow-y: auto;"></div>
+                        <div id="patientBadge" class="form-text text-success small d-none">
+                            <i class="bi bi-check-circle-fill me-1"></i> Existing patient selected.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="PatientFullName" class="form-label small fw-semibold">Full Name</label>
+                        <input asp-for="PatientFullName" class="form-control" placeholder="Mohamed Ali" autocomplete="name" />
+                        <span asp-validation-for="PatientFullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6">
+                            <label asp-for="PhoneNumber" class="form-label small fw-semibold">Phone Number</label>
+                            <input asp-for="PhoneNumber" type="tel" inputmode="tel" maxlength="16" autocomplete="tel"
+                                   class="form-control" placeholder="01012345678" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label asp-for="DateOfBirth" class="form-label small fw-semibold">Date of Birth</label>
+                            <input asp-for="DateOfBirth" type="date" min="@minDob" max="@todayStr" class="form-control"
+                                   value="@Model.DateOfBirth?.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                        <i class="bi bi-calendar2-heart text-primary"></i>
+                        <span class="fw-bold small text-uppercase text-secondary">Doctor & Date</span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold" asp-for="DoctorId">Doctor</label>
+                            <select id="DoctorId" name="DoctorId" class="form-select">
+                                <option value="0">-- Select Doctor --</option>
+                                @foreach (var d in Model.Doctors)
+                                {
+                                    <option value="@d.Id" selected="@(d.Id == Model.DoctorId)">@d.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="DoctorId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold" asp-for="Date">Date</label>
+                            <input id="Date" name="Date" type="date" min="@todayStr" class="form-control"
+                                   value="@Model.Date.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="Date" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Slots & Confirm -->
+                <div class="col-lg-6 ps-lg-4 border-start-lg d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-clock text-primary"></i>
+                                <span class="fw-bold small text-uppercase text-secondary">Available Slots (30 Min)</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span id="slotSpinner" class="spinner-border spinner-border-sm text-primary d-none" role="status"></span>
+                                <span class="badge bg-light text-muted border small" id="slotStatusLabel">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Slots Grid -->
+                        <div id="slotsChipContainer" class="slots-container mb-2" style="min-height: 230px; max-height: 280px;" role="radiogroup" aria-label="Available Time Slots">
+                            <div class="text-muted small p-4 text-center w-100 my-auto" id="emptySlotMessage">
+                                <i class="bi bi-calendar-check fs-3 d-block mb-2 text-secondary opacity-50"></i>
+                                <div>Select a doctor and date to view free slots</div>
+                            </div>
+                        </div>
+
+                        <select id="StartTime" name="StartTime" class="d-none" data-selected="@Model.StartTime?.ToString("HH:mm")">
+                            <option value="">-- Select Time --</option>
+                        </select>
+                        <span asp-validation-for="StartTime" class="text-danger small d-block"></span>
+                        <div id="slotHint" class="form-text small" aria-live="polite"></div>
+                    </div>
+
+                    <div class="d-flex justify-content-end align-items-center gap-2 pt-3 border-top mt-4">
+                        <a asp-action="Index" class="btn btn-light px-3">Cancel</a>
+                        <button type="submit" id="btnSaveAppointment" class="btn btn-primary fw-semibold px-4" disabled>
+                            <i class="bi bi-check2-circle me-1"></i> Book Appointment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // --- Patient Search & Auto-Fill ---
+        (function () {
+            const pid      = document.getElementById('PatientId');
+            const nameI    = document.getElementById('PatientFullName');
+            const dobI     = document.getElementById('DateOfBirth');
+            const phoneI   = document.getElementById('PhoneNumber');
+            const search   = document.getElementById('patientSearch');
+            const results  = document.getElementById('patientResults');
+            const clearBtn = document.getElementById('clearPatient');
+            const badge    = document.getElementById('patientBadge');
+            const url      = '@Url.Action("SearchPatients", "Appointments")';
+            const fields   = [nameI, dobI, phoneI];
+            let timer;
+
+            function setLocked(locked) {
+                fields.forEach(f => f.readOnly = locked);
+                clearBtn.classList.toggle('d-none', !locked);
+                badge.classList.toggle('d-none', !locked);
+                search.disabled = locked;
+            }
+
+            function lock(p) {
+                pid.value = p.id;
+                nameI.value = p.name;
+                dobI.value = p.dob;
+                phoneI.value = p.phone;
+                setLocked(true);
+                results.replaceChildren();
+                search.value = '';
+            }
+
+            function unlock() {
+                pid.value = '';
+                fields.forEach(f => {
+                    f.value = '';
+                    f.readOnly = false;
+                });
+                setLocked(false);
+                search.disabled = false;
+                search.focus();
+            }
+
+            search.addEventListener('input', () => {
+                clearTimeout(timer);
+                const term = search.value.trim();
+                if (term.length < 2) { results.replaceChildren(); return; }
+
+                timer = setTimeout(async () => {
+                    try {
+                        const res = await fetch(`${url}?term=${encodeURIComponent(term)}`);
+                        if (!res.ok) throw new Error();
+                        const patients = await res.json();
+                        results.replaceChildren();
+
+                        if (patients.length === 0) {
+                            const none = document.createElement('div');
+                            none.className = 'list-group-item text-muted small py-2';
+                            none.textContent = 'No matching patient. Enter details below.';
+                            results.append(none);
+                            return;
+                        }
+
+                        for (const p of patients) {
+                            const item = document.createElement('button');
+                            item.type = 'button';
+                            item.className = 'list-group-item list-group-item-action small py-2 d-flex justify-content-between align-items-center';
+                            item.textContent = `${p.name} - ${p.phone}`;
+                            item.addEventListener('click', () => lock(p));
+                            results.append(item);
+                        }
+                    } catch {
+                        results.replaceChildren();
+                    }
+                }, 300);
+            });
+
+            clearBtn.addEventListener('click', unlock);
+
+            document.addEventListener('click', (e) => {
+                if (!search.contains(e.target) && !results.contains(e.target)) {
+                    results.replaceChildren();
+                }
+            });
+
+            if (pid.value && pid.value !== '' && pid.value !== '0') {
+                setLocked(true);
+            }
+        })();
+
+        // --- Free Slots Picker ---
+        const doctorSelect = document.getElementById('DoctorId');
+        const dateInput = document.getElementById('Date');
+        const slotSelect = document.getElementById('StartTime');
+        const chipsContainer = document.getElementById('slotsChipContainer');
+        const slotHint = document.getElementById('slotHint');
+        const slotSpinner = document.getElementById('slotSpinner');
+        const slotStatusLabel = document.getElementById('slotStatusLabel');
+        const btnSave = document.getElementById('btnSaveAppointment');
+        const freeSlotsUrl = '@Url.Action("GetFreeSlots", "Appointments")';
+
+        async function loadSlots() {
+            const selectedVal = slotSelect.dataset.selected || slotSelect.value;
+            slotSelect.dataset.selected = '';
+            slotSelect.innerHTML = '<option value="">-- Select Time --</option>';
+            chipsContainer.innerHTML = '';
+            slotHint.textContent = '';
+            btnSave.disabled = true;
+
+            const docId = doctorSelect.value;
+            const dateVal = dateInput.value;
+
+            if (!docId || docId === '0' || !dateVal) {
+                chipsContainer.innerHTML = '<div class="text-muted small p-4 text-center w-100 my-auto"><i class="bi bi-calendar-check fs-3 d-block mb-2 text-secondary opacity-50"></i><div>Select a doctor and date to view free slots</div></div>';
+                slotStatusLabel.textContent = '--';
+                return;
+            }
+
+            slotSpinner.classList.remove('d-none');
+            slotStatusLabel.textContent = 'Loading...';
+
+            try {
+                const res = await fetch(`${freeSlotsUrl}?doctorId=${docId}&date=${dateVal}`);
+                if (!res.ok) throw new Error();
+                const slots = await res.json();
+
+                if (slots.length === 0) {
+                    chipsContainer.innerHTML = '<div class="text-muted small p-4 text-center w-100 my-auto"><i class="bi bi-calendar-x fs-3 d-block mb-2 text-warning"></i><div>No slots available for this date</div></div>';
+                    slotStatusLabel.textContent = '0 Slots';
+                    return;
+                }
+
+                slotStatusLabel.textContent = `${slots.length} Slots Available`;
+                let hasChecked = false;
+
+                slots.forEach((s) => {
+                    const isSelected = s.value === selectedVal;
+                    const opt = new Option(s.label, s.value, false, isSelected);
+                    slotSelect.add(opt);
+
+                    const label = document.createElement('label');
+                    label.className = 'slot-chip';
+
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = 'slotRadioOption';
+                    radio.value = s.value;
+                    if (isSelected) {
+                        radio.checked = true;
+                        hasChecked = true;
+                    }
+
+                    radio.addEventListener('change', function () {
+                        if (this.checked) {
+                            slotSelect.value = this.value;
+                            btnSave.disabled = false;
+                        }
+                    });
+
+                    const inner = document.createElement('div');
+                    inner.className = 'slot-chip-inner';
+
+                    const timeSpan = document.createElement('div');
+                    timeSpan.className = 'slot-time';
+                    timeSpan.textContent = s.label;
+
+                    const durSpan = document.createElement('div');
+                    durSpan.className = 'slot-duration';
+                    durSpan.textContent = '30 min';
+
+                    inner.appendChild(timeSpan);
+                    inner.appendChild(durSpan);
+                    label.appendChild(radio);
+                    label.appendChild(inner);
+                    chipsContainer.appendChild(label);
+                });
+
+                if (hasChecked) {
+                    slotSelect.value = selectedVal;
+                    btnSave.disabled = false;
+                }
+            } catch (e) {
+                chipsContainer.innerHTML = '<div class="text-danger small p-4 text-center w-100 my-auto">Could not load slots. Try again.</div>';
+                slotStatusLabel.textContent = 'Error';
+            } finally {
+                slotSpinner.classList.add('d-none');
+            }
+        }
+
+        doctorSelect.addEventListener('change', loadSlots);
+        dateInput.addEventListener('change', loadSlots);
+        loadSlots();
+    </script>
+}

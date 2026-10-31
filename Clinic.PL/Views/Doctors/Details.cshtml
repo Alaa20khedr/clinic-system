@@ -1,0 +1,334 @@
+@using System.Globalization
+@model Clinic.PL.ViewModels.DoctorDetailsVM
+@{
+    ViewData["Title"] = $"{Model.Name} - Schedule & Details";
+    var inv = CultureInfo.InvariantCulture;
+
+    var initials = string.Join("", Model.Name.Replace("Dr.", "").Split(' ', StringSplitOptions.RemoveEmptyEntries)
+        .Take(2)
+        .Select(x => x.Length > 0 ? x[0].ToString().ToUpper() : ""));
+    if (string.IsNullOrEmpty(initials)) initials = "DR";
+}
+
+<!-- Breadcrumbs & Header -->
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2 small">
+            <li class="breadcrumb-item"><a asp-action="Index" class="text-decoration-none">Doctors</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="d-flex align-items-center gap-3">
+            <div class="avatar-circle avatar-circle-lg" style="background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #16a34a; border-color: #86efac;">
+                @initials
+            </div>
+            <div>
+                <h2 class="h3 fw-bold mb-1">@Model.Name</h2>
+                <div class="text-muted small">
+                    <span class="badge bg-light text-dark border me-1">
+                        <i class="bi bi-award text-primary me-1"></i>
+                        @(string.IsNullOrWhiteSpace(Model.Specialty) ? "General Practice" : Model.Specialty)
+                    </span>
+                    &bull; @Model.TotalAppointmentsCount Total Patient Visit(s)
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary d-flex align-items-center gap-1 shadow-sm fw-semibold"
+                    data-bs-toggle="modal" data-bs-target="#addScheduleModal">
+                <i class="bi bi-plus-circle"></i> Add Working Shift
+            </button>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary d-flex align-items-center gap-1 shadow-sm">
+                <i class="bi bi-pencil"></i> Edit Doctor
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-sm">
+                <i class="bi bi-arrow-left"></i> All Doctors
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Doctor Summary Card (Left) -->
+    <div class="col-md-4">
+        <div class="card card-clinic shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="h6 mb-0 text-primary fw-bold">
+                    <i class="bi bi-person-badge me-2"></i> Physician Profile
+                </h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0 g-2">
+                    <dt class="col-5 text-muted small">Full Name</dt>
+                    <dd class="col-7 fw-semibold text-dark">@Model.Name</dd>
+
+                    <dt class="col-5 text-muted small">Specialty</dt>
+                    <dd class="col-7">
+                        <span class="badge bg-light text-primary border">
+                            @(string.IsNullOrWhiteSpace(Model.Specialty) ? "General Practice" : Model.Specialty)
+                        </span>
+                    </dd>
+
+                    <dt class="col-5 text-muted small">Clinic Center</dt>
+                    <dd class="col-7 text-muted">My Clinic</dd>
+
+                    <dt class="col-5 text-muted small">Visits Handled</dt>
+                    <dd class="col-7">
+                        <span class="badge bg-light text-success border">
+                            <i class="bi bi-calendar-check me-1"></i> @Model.TotalAppointmentsCount visits
+                        </span>
+                    </dd>
+
+                    <dt class="col-5 text-muted small">Doctor ID</dt>
+                    <dd class="col-7 text-muted">#@Model.Id</dd>
+                </dl>
+            </div>
+            <div class="card-footer bg-light p-3 small text-muted">
+                <div class="d-flex align-items-start gap-2">
+                    <i class="bi bi-shield-check text-primary fs-6 mt-1"></i>
+                    <div>
+                        <strong>Shift Protection Rule:</strong> Shifts must align with 30-minute intervals. Modifying or deleting a shift with future booked appointments is blocked.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Working Schedule 7-Day Board (Right) -->
+    <div class="col-md-8">
+        <div class="card card-clinic shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-calendar-week text-primary fs-5"></i>
+                    <h5 class="h6 mb-0 fw-bold">Weekly Shift Schedule (7 Days)</h5>
+                </div>
+                <span class="badge bg-light text-muted border">Saturday &ndash; Friday</span>
+            </div>
+            <div class="card-body p-3">
+                <div class="d-flex flex-column gap-2">
+                    @foreach (var day in Model.WeeklySchedules)
+                    {
+                        <div class="schedule-day-row @(day.IsDayOff ? "day-off" : "")">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div style="min-width: 125px;">
+                                    <div class="fw-bold @(day.IsDayOff ? "text-muted" : "text-dark")">@day.DayName</div>
+                                    @if (day.IsDayOff)
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border small mt-1">
+                                            <i class="bi bi-moon-stars me-1"></i> Day off
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success-subtle text-success border small mt-1">
+                                            <i class="bi bi-check-circle me-1"></i> Working
+                                        </span>
+                                    }
+                                </div>
+
+                                <div class="flex-grow-1">
+                                    @if (day.IsDayOff)
+                                    {
+                                        <span class="text-muted small fst-italic">No working hours scheduled for this day.</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach (var period in day.Periods)
+                                            {
+                                                var durationHours = (period.EndTime.ToTimeSpan() - period.StartTime.ToTimeSpan()).TotalHours;
+                                                var slotCount = (int)(durationHours * 2);
+
+                                                <div class="shift-pill">
+                                                    <div>
+                                                        <i class="bi bi-clock-fill text-primary me-1"></i>
+                                                        <span class="text-dark">@period.StartTime.ToString("hh:mm tt", inv) - @period.EndTime.ToString("hh:mm tt", inv)</span>
+                                                        <span class="badge bg-light text-secondary border ms-1 font-monospace">@slotCount slots</span>
+                                                    </div>
+
+                                                    <div class="d-inline-flex gap-1 ms-2">
+                                                        <button type="button" class="btn btn-sm btn-link p-0 text-primary"
+                                                                title="Edit Shift"
+                                                                data-bs-toggle="modal" data-bs-target="#editScheduleModal"
+                                                                data-id="@period.Id"
+                                                                data-day="@((int)period.DayOfWeek)"
+                                                                data-start="@period.StartTime.ToString("HH:mm")"
+                                                                data-end="@period.EndTime.ToString("HH:mm")">
+                                                            <i class="bi bi-pencil-square"></i>
+                                                        </button>
+
+                                                        <form asp-action="DeleteSchedule" method="post" class="d-inline"
+                                                              data-confirm="true"
+                                                              data-confirm-title="Delete Working Shift"
+                                                              data-confirm-message="Delete shift (@period.StartTime.ToString("hh:mm tt", inv) - @period.EndTime.ToString("hh:mm tt", inv))? If future appointments are booked during this shift, deletion will be blocked."
+                                                              data-confirm-btn-class="btn-danger"
+                                                              data-confirm-btn-text="Delete Shift">
+                                                            <input type="hidden" name="doctorId" value="@Model.Id" />
+                                                            <input type="hidden" name="scheduleId" value="@period.Id" />
+                                                            <button type="submit" class="btn btn-sm btn-link p-0 text-danger" title="Delete Shift">
+                                                                <i class="bi bi-x-circle"></i>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 d-flex align-items-center gap-1 shadow-sm"
+                                            title="Add shift on @day.DayName"
+                                            data-bs-toggle="modal" data-bs-target="#addScheduleModal"
+                                            data-preselect-day="@((int)day.DayOfWeek)">
+                                        <i class="bi bi-plus-lg"></i>
+                                        <span class="small">Add Shift</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Schedule Shift -->
+<div class="modal fade" id="addScheduleModal" tabindex="-1" aria-labelledby="addScheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="AddSchedule" method="post">
+                <input type="hidden" name="doctorId" value="@Model.Id" />
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold" id="addScheduleModalLabel">
+                        <i class="bi bi-clock-history text-primary me-2"></i> Add Working Shift
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Day of Week</label>
+                        <select id="addSchedule_DayOfWeek" name="DayOfWeek" class="form-select" required>
+                            <option value="6">Saturday</option>
+                            <option value="0">Sunday</option>
+                            <option value="1">Monday</option>
+                            <option value="2">Tuesday</option>
+                            <option value="3">Wednesday</option>
+                            <option value="4">Thursday</option>
+                            <option value="5">Friday</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Shift Start Time</label>
+                            <input type="time" step="1800" name="StartTime" class="form-control" value="09:00" required />
+                            <div class="form-text small">e.g. 09:00 or 16:00</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Shift End Time</label>
+                            <input type="time" step="1800" name="EndTime" class="form-control" value="13:00" required />
+                            <div class="form-text small">e.g. 13:00 or 20:00</div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info py-2 small mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle fs-5"></i>
+                        <div>Shifts must align with 30-minute intervals and cannot overlap with existing shifts on the same day.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-semibold px-4">Add Shift</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Edit Schedule Shift -->
+<div class="modal fade" id="editScheduleModal" tabindex="-1" aria-labelledby="editScheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="EditSchedule" method="post">
+                <input type="hidden" name="doctorId" value="@Model.Id" />
+                <input type="hidden" id="editSchedule_Id" name="Id" value="0" />
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold" id="editScheduleModalLabel">
+                        <i class="bi bi-pencil-square text-primary me-2"></i> Edit Working Shift
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Day of Week</label>
+                        <select id="editSchedule_DayOfWeek" name="DayOfWeek" class="form-select" required>
+                            <option value="6">Saturday</option>
+                            <option value="0">Sunday</option>
+                            <option value="1">Monday</option>
+                            <option value="2">Tuesday</option>
+                            <option value="3">Wednesday</option>
+                            <option value="4">Thursday</option>
+                            <option value="5">Friday</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Shift Start Time</label>
+                            <input type="time" step="1800" id="editSchedule_StartTime" name="StartTime" class="form-control" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Shift End Time</label>
+                            <input type="time" step="1800" id="editSchedule_EndTime" name="EndTime" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning py-2 small mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-exclamation-triangle fs-5"></i>
+                        <div>If this shift already contains future appointments booked, changing the shift hours will be blocked.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-semibold px-4">Update Shift</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Pre-select day when opening Add Shift modal from a specific day row
+        const addModal = document.getElementById('addScheduleModal');
+        if (addModal) {
+            addModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                if (button && button.dataset.preselectDay) {
+                    const daySelect = document.getElementById('addSchedule_DayOfWeek');
+                    daySelect.value = button.dataset.preselectDay;
+                }
+            });
+        }
+
+        // Populate Edit Shift modal
+        const editModal = document.getElementById('editScheduleModal');
+        if (editModal) {
+            editModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                if (button) {
+                    document.getElementById('editSchedule_Id').value = button.dataset.id;
+                    document.getElementById('editSchedule_DayOfWeek').value = button.dataset.day;
+                    document.getElementById('editSchedule_StartTime').value = button.dataset.start;
+                    document.getElementById('editSchedule_EndTime').value = button.dataset.end;
+                }
+            });
+        }
+    </script>
+}

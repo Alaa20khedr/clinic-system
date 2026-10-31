@@ -1,0 +1,264 @@
+@using System.Globalization
+@model Clinic.PL.ViewModels.AppointmentsPageVM
+@{
+    ViewData["Title"] = "Appointments";
+    var inv = CultureInfo.InvariantCulture;
+    var todayStr = DateTime.Today.ToString("yyyy-MM-dd");
+    var tomorrowStr = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd");
+
+    var totalCount = Model.Appointments.Count;
+    var bookedCount = Model.Appointments.Count(a => a.Status == "Booked");
+    var completedCount = Model.Appointments.Count(a => a.Status == "Completed");
+    var cancelledCount = Model.Appointments.Count(a => a.Status == "Cancelled");
+}
+
+<!-- Page Header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h2 class="h4 fw-bold mb-1 text-dark">Appointments</h2>
+        <p class="text-muted small mb-0">Overview and schedule of patient visits</p>
+    </div>
+    <div>
+        <a asp-action="Create" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm fw-semibold">
+            <i class="bi bi-calendar-plus"></i>
+            <span>Book Appointment</span>
+        </a>
+    </div>
+</div>
+
+<!-- KPI Summary Metrics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Total Visits</div>
+                <div class="kpi-value">@totalCount</div>
+            </div>
+            <div class="kpi-card-icon" style="background-color: var(--clinic-primary-light); color: var(--clinic-primary);">
+                <i class="bi bi-calendar2-range"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Confirmed (Booked)</div>
+                <div class="kpi-value text-success">@bookedCount</div>
+            </div>
+            <div class="kpi-card-icon" style="background-color: var(--clinic-success-light); color: var(--clinic-success);">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Completed Visits</div>
+                <div class="kpi-value text-primary">@completedCount</div>
+            </div>
+            <div class="kpi-card-icon" style="background-color: #eff6ff; color: #2563eb;">
+                <i class="bi bi-check2-circle"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Cancelled</div>
+                <div class="kpi-value text-muted">@cancelledCount</div>
+            </div>
+            <div class="kpi-card-icon" style="background-color: #f1f5f9; color: #64748b;">
+                <i class="bi bi-calendar-x"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Full-Width Appointments Card (Organized like Doctors & Patients) -->
+<div class="card card-clinic shadow-sm">
+    <div class="card-header bg-white">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-calendar3-week text-primary fs-5"></i>
+                <span class="h6 mb-0 fw-bold">All Appointments</span>
+            </div>
+
+            <!-- Quick Date Filter Segmented Group -->
+            <div class="btn-group btn-group-sm shadow-sm">
+                <a asp-action="Index" asp-route-filterDate="@todayStr" asp-route-filterDoctorId="@Model.FilterDoctorId"
+                   class="btn @(Model.FilterDate?.ToString("yyyy-MM-dd") == todayStr ? "btn-primary" : "btn-outline-secondary")">
+                    Today
+                </a>
+                <a asp-action="Index" asp-route-filterDate="@tomorrowStr" asp-route-filterDoctorId="@Model.FilterDoctorId"
+                   class="btn @(Model.FilterDate?.ToString("yyyy-MM-dd") == tomorrowStr ? "btn-primary" : "btn-outline-secondary")">
+                    Tomorrow
+                </a>
+                <a asp-action="Index" asp-route-filterDoctorId="@Model.FilterDoctorId"
+                   class="btn @(!Model.FilterDate.HasValue ? "btn-primary" : "btn-outline-secondary")">
+                    All Dates
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Filter Bar Form -->
+        <form method="get" class="row g-2 mb-3 align-items-center">
+            <div class="col-sm-5 col-md-4 col-lg-3">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+                    <input type="date" name="filterDate" class="form-control"
+                           value="@Model.FilterDate?.ToString("yyyy-MM-dd")" placeholder="Filter Date" />
+                </div>
+            </div>
+            <div class="col-sm-5 col-md-4 col-lg-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                    <select name="filterDoctorId" class="form-select">
+                        <option value="">All Doctors</option>
+                        @foreach (var d in Model.Doctors)
+                        {
+                            <option value="@d.Id" selected="@(d.Id == Model.FilterDoctorId)">@d.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-sm-2 col-md-4 col-lg-2 d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-outline-primary px-3 fw-semibold">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary" title="Reset Filters">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
+
+        <!-- Grid Table -->
+        <div class="table-responsive">
+            <table class="table table-clinic align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Patient Name</th>
+                        <th>Doctor</th>
+                        <th>Date</th>
+                        <th>Time Slot</th>
+                        <th>Status</th>
+                        <th class="text-end" style="min-width: 140px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Appointments.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <div class="avatar-circle mx-auto mb-3" style="width: 56px; height: 56px; background-color: #f1f5f9; color: #94a3b8;">
+                                    <i class="bi bi-calendar-x fs-3"></i>
+                                </div>
+                                <div class="fw-semibold text-dark">No appointments found</div>
+                                <div class="small mb-3">There are no records matching your selected date or doctor filter.</div>
+                                <a asp-action="Create" class="btn btn-sm btn-primary shadow-sm">
+                                    <i class="bi bi-plus-circle me-1"></i> Book New Appointment
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var a in Model.Appointments)
+                    {
+                        var badgeClass = a.Status switch
+                        {
+                            "Cancelled" => "badge-status-cancelled",
+                            "Completed" => "badge-status-completed",
+                            _ => "badge-status-booked"
+                        };
+
+                        var initials = string.Join("", a.PatientName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                            .Take(2)
+                            .Select(x => x.Length > 0 ? x[0].ToString().ToUpper() : ""));
+                        if (string.IsNullOrEmpty(initials)) initials = "P";
+
+                        <tr>
+                            <td class="text-muted small">@a.Id</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar-circle">@initials</div>
+                                    <div>
+                                        <a asp-action="Details" asp-route-id="@a.Id" class="text-decoration-none fw-semibold text-dark d-block">
+                                            @a.PatientName
+                                        </a>
+                                        <span class="text-muted small">PID: #@a.Id</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-1">
+                                    <i class="bi bi-person-fill text-primary"></i>
+                                    <span class="text-dark fw-medium">@a.DoctorName</span>
+                                </div>
+                            </td>
+                            <td class="text-nowrap small text-muted">
+                                <i class="bi bi-calendar-event me-1"></i>
+                                @a.Date.ToString("dd MMM yyyy", inv)
+                            </td>
+                            <td class="text-nowrap">
+                                <span class="badge bg-light text-dark border font-monospace">
+                                    <i class="bi bi-clock me-1 text-primary"></i>
+                                    @a.StartTime.ToString("hh:mm tt", inv) - @a.EndTime.ToString("hh:mm tt", inv)
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge @badgeClass">
+                                    <span class="status-dot"></span>
+                                    <span>@a.Status</span>
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <a asp-action="Details" asp-route-id="@a.Id" class="btn-action-icon btn-action-info"
+                                       data-bs-toggle="tooltip" data-bs-title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+
+                                    @if (a.Status == "Booked")
+                                    {
+                                        <form asp-action="Complete" method="post" class="d-inline"
+                                              data-confirm="true"
+                                              data-confirm-title="Complete Appointment"
+                                              data-confirm-message="Mark appointment for @a.PatientName as Completed?"
+                                              data-confirm-btn-class="btn-primary"
+                                              data-confirm-btn-text="Mark Completed">
+                                            <input type="hidden" name="id" value="@a.Id" />
+                                            <input type="hidden" name="filterDate" value="@Model.FilterDate?.ToString("yyyy-MM-dd")" />
+                                            <input type="hidden" name="filterDoctorId" value="@Model.FilterDoctorId" />
+                                            <button type="submit" class="btn-action-icon btn-action-success"
+                                                    data-bs-toggle="tooltip" data-bs-title="Complete Visit">
+                                                <i class="bi bi-check2"></i>
+                                            </button>
+                                        </form>
+
+                                        <form asp-action="Cancel" method="post" class="d-inline"
+                                              data-confirm="true"
+                                              data-confirm-title="Cancel Appointment"
+                                              data-confirm-message="Cancel appointment for @a.PatientName? The time slot will immediately become free."
+                                              data-confirm-btn-class="btn-danger"
+                                              data-confirm-btn-text="Cancel Appointment">
+                                            <input type="hidden" name="id" value="@a.Id" />
+                                            <input type="hidden" name="filterDate" value="@Model.FilterDate?.ToString("yyyy-MM-dd")" />
+                                            <input type="hidden" name="filterDoctorId" value="@Model.FilterDoctorId" />
+                                            <button type="submit" class="btn-action-icon btn-action-danger"
+                                                    data-bs-toggle="tooltip" data-bs-title="Cancel Appointment">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
